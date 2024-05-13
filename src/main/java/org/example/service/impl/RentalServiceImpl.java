@@ -1,6 +1,8 @@
 package org.example.service.impl;
 
-import org.example.database.DatabaseAccess;
+import org.example.database.BookCopyRepository;
+import org.example.database.ClientRepository;
+import org.example.database.RentalRepository;
 import org.example.dto.RentalView;
 import org.example.entity.BookCopy;
 import org.example.entity.BookRental;
@@ -20,29 +22,46 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static org.example.entity.RentalStatus.ACTIVE;
+import static org.example.entity.RentalStatus.RESERVED;
+
 public class RentalServiceImpl implements RentalService {
-    private final DatabaseAccess databaseAccess;
+    private final RentalRepository rentalRepository;
+    private final ClientRepository clientRepository;
+    private final BookCopyRepository bookCopyRepository;
     private final LockService lockService;
     private final OtpService otpService;
 
     @Inject
-    public RentalServiceImpl(DatabaseAccess databaseAccess, LockService lockService, OtpService otpService) {
-        this.databaseAccess = databaseAccess;
+    public RentalServiceImpl(RentalRepository rentalRepository,
+                             ClientRepository clientRepository,
+                             BookCopyRepository bookCopyRepository, LockService lockService,
+                             OtpService otpService
+    ) {
+        this.rentalRepository = rentalRepository;
+        this.clientRepository = clientRepository;
+        this.bookCopyRepository = bookCopyRepository;
         this.lockService = lockService;
         this.otpService = otpService;
     }
 
     @Override
     public RentalView reserve(UUID bookId, UUID clientId) throws NoBookCopiesAvailableException, AlreadyReservedException {
-        Client client = databaseAccess.findClient(clientId);
-        if (databaseAccess.alreadyReserved(bookId, clientId)) {
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(NotFoundException::new);
+        if (!rentalRepository.findByBookIdAndClientIdAndStatusIn(bookId, clientId, ACTIVE, RESERVED).isEmpty()) {
             throw new AlreadyReservedException();
         }
         lockService.lock(bookId);
         try {
-            BookCopy bookCopy = databaseAccess.findAvailableBookCopy(bookId)
+            BookCopy bookCopy = bookCopyRepository.findAvailableCopyOf(bookId)
                     .orElseThrow(NoBookCopiesAvailableException::new);
-            BookRental rental = databaseAccess.createRentalStatusReserved(bookCopy, client);
+            BookRental rental = BookRental.builder()
+                    .status(RESERVED)
+                    .bookCopy(bookCopy)
+                    .client(client)
+                    .build();
+            rentalRepository.save(rental);
             return toView(rental);
         } finally {
             lockService.unlock(bookId);
@@ -51,13 +70,13 @@ public class RentalServiceImpl implements RentalService {
 
     @Override
     public void deactivateExpiredReservations() {
-        databaseAccess.deactivateExpiredReservations();
+        rentalRepository.deactivateExpired();
     }
 
     @Override
     public void sendOtp(UUID rentalId) {
-        BookRental bookRental = databaseAccess.findRental(rentalId)
-                .filter(rental -> RentalStatus.RESERVED.equals(rental.getStatus()))
+        BookRental bookRental = rentalRepository.findById(rentalId)
+                .filter(rental -> RESERVED.equals(rental.getStatus()))
                 .orElseThrow(NotFoundException::new);
         otpService.sendOtp(bookRental.getId());
     }
@@ -67,33 +86,33 @@ public class RentalServiceImpl implements RentalService {
         if (otpService.validateOtp(rentalId, otp)) {
             throw new BadRequestException();
         }
-        BookRental bookRental = databaseAccess.findRental(rentalId)
-                .filter(rental -> RentalStatus.RESERVED.equals(rental.getStatus()))
+        BookRental bookRental = rentalRepository.findById(rentalId)
+                .filter(rental -> RESERVED.equals(rental.getStatus()))
                 .orElseThrow(NotFoundException::new);
-        bookRental.setStatus(RentalStatus.ACTIVE);
+        bookRental.setStatus(ACTIVE);
         bookRental.setStartDate(LocalDate.now());
         bookRental.setEndDate(LocalDate.now().plusDays(14));
-        databaseAccess.save(bookRental);
+        rentalRepository.save(bookRental);
     }
 
     @Override
     public RentalView find(UUID rentalId) {
-        BookRental bookRental = databaseAccess.findRental(rentalId)
+        BookRental bookRental = rentalRepository.findById(rentalId)
                 .orElseThrow(NotFoundException::new);
         return toView(bookRental);
     }
 
     @Override
     public void close(UUID rentalId) {
-        BookRental bookRental = databaseAccess.findRental(rentalId)
+        BookRental bookRental = rentalRepository.findById(rentalId)
                 .orElseThrow(NotFoundException::new);
         bookRental.setStatus(RentalStatus.FINISHED);
-        databaseAccess.save(bookRental);
+        rentalRepository.save(bookRental);
     }
 
     @Override
     public List<RentalView> rentalHistory(UUID clientId, int page) {
-        return databaseAccess.rentalHistory(clientId, page)
+        return rentalRepository.history(clientId, page)
                 .map(RentalServiceImpl::toView)
                 .collect(Collectors.toList());
     }

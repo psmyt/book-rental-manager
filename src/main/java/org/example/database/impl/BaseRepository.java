@@ -1,5 +1,6 @@
-package org.example.database.impl.repository;
+package org.example.database.impl;
 
+import org.example.database.Repository;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -10,7 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
-public abstract class BaseRepository<T> {
+public abstract class BaseRepository<T> implements Repository<T> {
     protected Class<T> tClass;
     private SessionFactory sessionFactory;
 

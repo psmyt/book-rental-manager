@@ -1,5 +1,6 @@
-package org.example.database.impl.repository;
+package org.example.database.impl;
 
+import org.example.database.RentalRepository;
 import org.example.entity.BookRental;
 import org.example.entity.RentalStatus;
 
@@ -8,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-public class RentalRepository extends BaseRepository<BookRental> {
+public class RentalRepositoryImpl extends BaseRepository<BookRental> implements RentalRepository {
     private static final int ENTRIES_PER_PAGE = 10;
     private static final String HISTORY = "from BookRental " +
             "where " +
@@ -26,6 +27,7 @@ public class RentalRepository extends BaseRepository<BookRental> {
             "where status = 'RESERVED' " +
             "and created + 10 * interval '1 minute' < now()";
 
+    @Override
     public List<BookRental> findByBookIdAndClientIdAndStatusIn(UUID bookId, UUID clientId, RentalStatus... statuses) {
         return tryWithNewSession(session ->
                 session.createQuery(FIND_BY_BOOK_CLIENT_STATUS, BookRental.class)
@@ -36,12 +38,14 @@ public class RentalRepository extends BaseRepository<BookRental> {
         );
     }
 
+    @Override
     public void deactivateExpired() {
         tryWithNewSession(session ->
                 session.createNativeQuery(DEACTIVATE_EXPIRED).executeUpdate()
         );
     }
 
+    @Override
     public Stream<BookRental> history(UUID clientId, int page) {
         int offset = page * ENTRIES_PER_PAGE;
         return tryWithNewSession(session ->

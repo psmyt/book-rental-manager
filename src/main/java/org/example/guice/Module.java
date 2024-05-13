@@ -3,8 +3,14 @@ package org.example.guice;
 import com.google.inject.Binder;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import org.example.database.DatabaseAccess;
-import org.example.database.impl.DatabaseAccessImpl;
+import org.example.database.BookCopyRepository;
+import org.example.database.BookRepository;
+import org.example.database.ClientRepository;
+import org.example.database.RentalRepository;
+import org.example.database.impl.BookCopyRepositoryImpl;
+import org.example.database.impl.BookRepositoryImpl;
+import org.example.database.impl.ClientRepositoryImpl;
+import org.example.database.impl.RentalRepositoryImpl;
 import org.example.job.ExpiredReservationsDeactivation;
 import org.example.rest.PublicController;
 import org.example.service.BookService;
@@ -24,7 +30,10 @@ public class Module implements com.google.inject.Module {
     public void configure(Binder binder) {
         binder.bind(ExpiredReservationsDeactivation.class).asEagerSingleton();
         binder.bind(PublicController.class);
-        binder.bind(DatabaseAccess.class).to(DatabaseAccessImpl.class);
+        binder.bind(BookRepository.class).to(BookRepositoryImpl.class);
+        binder.bind(BookCopyRepository.class).to(BookCopyRepositoryImpl.class);
+        binder.bind(RentalRepository.class).to(RentalRepositoryImpl.class);
+        binder.bind(ClientRepository.class).to(ClientRepositoryImpl.class);
         binder.bind(RentalService.class).to(RentalServiceImpl.class);
         binder.bind(LockService.class).to(PrimitiveLockService.class);
         binder.bind(OtpService.class).to(OtpServiceMock.class);
@@ -39,7 +48,7 @@ public class Module implements com.google.inject.Module {
 
     @Provides
     @Singleton
-    public BookService bookService(DatabaseAccess databaseAccess) {
-        return new BookServiceImpl(databaseAccess);
+    public BookService bookService(BookRepository bookRepository) {
+        return new BookServiceImpl(bookRepository);
     }
 }

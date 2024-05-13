@@ -1,6 +1,6 @@
 package org.example.service.impl;
 
-import org.example.database.DatabaseAccess;
+import org.example.database.BookRepository;
 import org.example.dto.BookDto;
 import org.example.entity.Book;
 import org.example.service.BookService;
@@ -11,16 +11,16 @@ import java.util.stream.Collectors;
 
 public class BookServiceImpl implements BookService {
 
-    private final DatabaseAccess databaseAccess;
+    private final BookRepository bookRepository;
 
-    public BookServiceImpl(DatabaseAccess databaseAccess) {
-        this.databaseAccess = databaseAccess;
+    public BookServiceImpl(BookRepository bookRepository) {
+        this.bookRepository = bookRepository;
     }
 
 
     @Override
     public List<BookDto> getBooks() {
-        return databaseAccess.allBooks()
+        return bookRepository.allBooks()
                 .stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());

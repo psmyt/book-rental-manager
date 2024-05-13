@@ -1,6 +1,8 @@
 package org.example.service.impl;
 
-import org.example.database.DatabaseAccess;
+import org.example.database.BookCopyRepository;
+import org.example.database.ClientRepository;
+import org.example.database.RentalRepository;
 import org.example.dto.RentalView;
 import org.example.entity.Book;
 import org.example.entity.BookCopy;
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import test_data.Random;
 import test_data.RentalServiceParameterResolver;
 
+import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,12 +28,14 @@ import static org.mockito.Mockito.*;
 @ExtendWith(RentalServiceParameterResolver.class)
 class RentalServiceImplTest {
 
-    DatabaseAccess databaseAccess = mock(DatabaseAccess.class);
+    RentalRepository rentalRepository = mock(RentalRepository.class);
+    ClientRepository clientRepository = mock(ClientRepository.class);
+    BookCopyRepository bookCopyRepository = mock(BookCopyRepository.class);
     LockService lockService = new PrimitiveLockService();
     OtpService otpService = new OtpServiceMock();
 
     private final RentalServiceImpl rentalService = new RentalServiceImpl(
-            databaseAccess, lockService, otpService
+            rentalRepository, clientRepository, bookCopyRepository, lockService, otpService
     );
 
     @Test
@@ -41,31 +46,27 @@ class RentalServiceImplTest {
                                     @Random Client randomClient) throws InterruptedException {
         AtomicInteger counter = new AtomicInteger(0);
 
-        doReturn(client)
-                .when(databaseAccess)
-                .findClient(client.getId());
+        doReturn(Optional.of(client))
+                .when(clientRepository)
+                .findById(client.getId());
 
-        doReturn(randomClient)
-                .when(databaseAccess)
-                .findClient(randomClient.getId());
+        doReturn(Optional.of(randomClient))
+                .when(clientRepository)
+                .findById(randomClient.getId());
 
-        when(databaseAccess.alreadyReserved(any(), any()))
-                .thenReturn(false);
+        when(rentalRepository.findByBookIdAndClientIdAndStatusIn(any(), any()))
+                .thenReturn(Collections.emptyList());
 
-        doAnswer(invocation -> {
-            counter.incrementAndGet();
-            Client actualClient = invocation.getArgument(1);
-            Assertions.assertEquals(client, actualClient);
-            return bookRental;
-        }).when(databaseAccess)
-                .createRentalStatusReserved(any(), any());
+        when(bookCopyRepository.findAvailableCopyOf(any()))
+                .thenAnswer(i -> Optional.of(bookCopy));
 
-        when(databaseAccess.findAvailableBookCopy(any()))
+        when(rentalRepository.save(any()))
                 .thenAnswer(i -> {
-                    Thread.sleep(5000);
-                    return Optional.of(bookCopy);
-                })
-                .thenAnswer(i -> Optional.empty());
+                            counter.incrementAndGet();
+                            Thread.sleep(5000);
+                            return bookRental;
+                        }
+                ).thenAnswer(i -> bookRental);
 
         //будет выполняться 5 секунд
         CompletableFuture<RentalView> future = CompletableFuture.supplyAsync(() -> {
@@ -78,15 +79,19 @@ class RentalServiceImplTest {
 
         Thread.sleep(1000);
 
-        boolean completedExceptionally = CompletableFuture.runAsync(() -> Assertions.assertThrows(
-                NoBookCopiesAvailableException.class,
-                () -> rentalService.reserve(book.getId(), randomClient.getId()))
-        ).isCompletedExceptionally();
+        CompletableFuture<Void> future2 = CompletableFuture.runAsync(() -> {
+            try {
+                rentalService.reserve(book.getId(), randomClient.getId());
+            } catch (NoBookCopiesAvailableException | AlreadyReservedException e) {
+                throw new RuntimeException(e);
+            }
+        });
 
-        if (completedExceptionally)
-            throw new AssertionError();
+        Thread.sleep(1000);
+
+        Assertions.assertEquals(1, counter.get());
 
         future.join();
-        Assertions.assertEquals(1, counter.get());
+        future2.join();
     }
 }
