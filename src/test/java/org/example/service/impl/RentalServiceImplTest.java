@@ -62,11 +62,13 @@ class RentalServiceImplTest {
 
         when(rentalRepository.save(any()))
                 .thenAnswer(i -> {
-                            counter.incrementAndGet();
-                            Thread.sleep(5000);
-                            return bookRental;
-                        }
-                ).thenAnswer(i -> bookRental);
+                    counter.incrementAndGet();
+                    Thread.sleep(5000);
+                    return bookRental;
+                }).thenAnswer(i -> {
+                    counter.incrementAndGet();
+                    return bookRental;
+                });
 
         //будет выполняться 5 секунд
         CompletableFuture<RentalView> future = CompletableFuture.supplyAsync(() -> {
