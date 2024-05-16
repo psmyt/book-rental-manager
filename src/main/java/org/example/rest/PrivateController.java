@@ -1,41 +1,38 @@
 package org.example.rest;
 
+import lombok.AllArgsConstructor;
 import org.example.dto.RentalView;
 import org.example.service.RentalService;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.security.RolesAllowed;
-import javax.inject.Inject;
-import javax.ws.rs.*;
 import java.util.UUID;
 
-@Path("/private/rentals")
+@RequestMapping("/private/rentals")
 @RolesAllowed("employee")
+@RestController
+@AllArgsConstructor
 public class PrivateController {
 
-    @Inject
-    private RentalService rentalService;
+    private final RentalService rentalService;
 
-    @GET
-    @Path("/{rentalId}")
-    public RentalView getRental(@PathParam("rentalId") UUID rentalId) {
+    @PostMapping("/{rentalId}")
+    public RentalView getRental(@PathVariable("rentalId") UUID rentalId) {
         return rentalService.find(rentalId);
     }
 
-    @POST
-    @Path("/{rentalId}/sendOtp")
-    public void sendOtp(@PathParam("rentalId") UUID rentalId) {
+    @PostMapping("/{rentalId}/sendOtp")
+    public void sendOtp(@PathVariable("rentalId") UUID rentalId) {
         rentalService.sendOtp(rentalId);
     }
 
-    @POST
-    @Path("/{rentalId}/confirm")
-    public void validateOtp(@PathParam("rentalId") UUID rentalId, @QueryParam("otp") String otp) {
+    @PostMapping("/{rentalId}/confirm")
+    public void validateOtp(@PathVariable("rentalId") UUID rentalId, @RequestParam("otp") String otp) {
         rentalService.validateOtp(rentalId, otp);
     }
 
-    @POST
-    @Path("/{rentalId}/close")
-    public void closeRental(@PathParam("rentalId") UUID rentalId) {
+    @PostMapping("/{rentalId}/close")
+    public void closeRental(@PathVariable("rentalId") UUID rentalId) {
         rentalService.close(rentalId);
     }
 }

@@ -1,6 +1,9 @@
 package org.example.database;
 
 import org.example.entity.Client;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface ClientRepository extends Repository<Client> {
+import java.util.UUID;
+
+public interface ClientRepository extends JpaRepository<Client, UUID> {
 }

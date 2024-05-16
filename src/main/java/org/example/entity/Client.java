@@ -2,10 +2,10 @@ package org.example.entity;
 
 import lombok.Data;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
-import javax.validation.constraints.NotNull;
 import java.util.UUID;
 
 @Data
@@ -14,11 +14,11 @@ public class Client {
     @Id
     @GeneratedValue
     UUID id;
-    @NotNull
+    @Column(nullable = false)
     String phone;
-    @NotNull
+    @Column(nullable = false)
     String firstName;
-    @NotNull
+    @Column(nullable = false)
     String lastName;
     String patronymic;
 }

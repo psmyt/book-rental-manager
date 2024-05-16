@@ -1,66 +1,46 @@
 package org.example.rest;
 
+import lombok.AllArgsConstructor;
 import org.example.dto.BookDto;
 import org.example.dto.RentalView;
 import org.example.exception.AlreadyReservedException;
 import org.example.service.BookService;
 import org.example.exception.NoBookCopiesAvailableException;
 import org.example.service.RentalService;
-import org.keycloak.KeycloakPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.security.RolesAllowed;
-import javax.inject.Inject;
-import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.SecurityContext;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
-@Path("/public")
+@RestController
+@RequestMapping("/public")
+@AllArgsConstructor
 public class PublicController {
-    @Inject
-    private BookService bookService;
-    @Inject
-    private RentalService rentalService;
+    private final BookService bookService;
+    private final RentalService rentalService;
 
-    @GET
-    @Path("/books")
-    @Produces(MediaType.APPLICATION_JSON)
+    @GetMapping("/books")
     public List<BookDto> getBooks() {
         return bookService.getBooks();
     }
 
-    @POST
     @RolesAllowed("client")
-    @Path("/books/{bookId}/reserve")
-    @Produces(MediaType.APPLICATION_JSON)
-    public RentalView reserve(@PathParam("bookId") UUID bookId, @Context SecurityContext securityContext)
-            throws AlreadyReservedException, NoBookCopiesAvailableException {
-        UUID clientId = getClientId(securityContext);
+    @PostMapping("/books/{bookId}/reserve")
+    public RentalView reserve(
+            @PathVariable("bookId") UUID bookId,
+            @AuthenticationPrincipal(expression = "clientId") UUID clientId
+    ) throws AlreadyReservedException, NoBookCopiesAvailableException {
         return rentalService.reserve(bookId, clientId);
     }
 
-    @GET
     @RolesAllowed("client")
-    @Path("/rentals/history")
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<RentalView> history(@QueryParam("page") int page, @Context SecurityContext securityContext) {
+    @GetMapping("/rentals/history")
+    public List<RentalView> history(@RequestParam("page") int page, @AuthenticationPrincipal(expression = "clientId") UUID clientId) {
         if (page < 0) {
             throw new IllegalArgumentException();
         }
-        UUID clientId = getClientId(securityContext);
         return rentalService.rentalHistory(clientId, page);
-    }
-
-    // TODO вынести в фильтр
-    private static UUID getClientId(SecurityContext securityContext) {
-        Object clientId = ((KeycloakPrincipal<?>) securityContext.getUserPrincipal())
-                .getKeycloakSecurityContext()
-                .getIdToken()
-                .getOtherClaims()
-                .get("clientId");
-        return UUID.fromString((String) Objects.requireNonNull(clientId));
     }
 }

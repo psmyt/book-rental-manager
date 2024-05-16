@@ -1,22 +1,21 @@
 package org.example.job;
 
 import org.example.service.RentalService;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
-import javax.inject.Inject;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+@Component
 public class ExpiredReservationsDeactivation {
-    private final ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+    private final RentalService rentalService;
 
-    @Inject
-    void init(RentalService rentalService) {
-        scheduledExecutorService.scheduleAtFixedRate(
-                rentalService::deactivateExpiredReservations,
-                0,
-                1,
-                TimeUnit.MINUTES
-        );
+    public ExpiredReservationsDeactivation(RentalService rentalService) {
+        this.rentalService = rentalService;
+    }
+
+    @Scheduled(fixedRate = 1, timeUnit = TimeUnit.MINUTES)
+    void deactivate() {
+        rentalService.deactivateExpiredReservations();
     }
 }

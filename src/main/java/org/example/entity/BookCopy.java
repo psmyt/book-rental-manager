@@ -4,7 +4,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotNull;
 import java.util.UUID;
 
 @Data
@@ -16,6 +15,6 @@ public class BookCopy {
     UUID id;
     @ManyToOne
     Book book;
-    @NotNull
+    @Column(nullable = false)
     String serial;
 }

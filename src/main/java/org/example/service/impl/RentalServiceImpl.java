@@ -1,8 +1,14 @@
 package org.example.service.impl;
 
+import lombok.RequiredArgsConstructor;
 import org.example.database.BookCopyRepository;
 import org.example.database.ClientRepository;
 import org.example.database.RentalRepository;
+import org.example.exception.BadRequestException;
+import org.example.exception.NotFoundException;
+import org.example.service.LockService;
+import org.example.service.OtpService;
+import org.example.service.RentalService;
 import org.example.dto.RentalView;
 import org.example.entity.BookCopy;
 import org.example.entity.BookRental;
@@ -10,40 +16,23 @@ import org.example.entity.Client;
 import org.example.entity.RentalStatus;
 import org.example.exception.AlreadyReservedException;
 import org.example.exception.NoBookCopiesAvailableException;
-import org.example.service.LockService;
-import org.example.service.OtpService;
-import org.example.service.RentalService;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
 
-import javax.inject.Inject;
-import javax.ws.rs.BadRequestException;
-import javax.ws.rs.NotFoundException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import static org.example.entity.RentalStatus.ACTIVE;
-import static org.example.entity.RentalStatus.RESERVED;
+import static org.example.entity.RentalStatus.*;
 
+@Service
+@RequiredArgsConstructor
 public class RentalServiceImpl implements RentalService {
     private final RentalRepository rentalRepository;
     private final ClientRepository clientRepository;
     private final BookCopyRepository bookCopyRepository;
     private final LockService lockService;
     private final OtpService otpService;
-
-    @Inject
-    public RentalServiceImpl(RentalRepository rentalRepository,
-                             ClientRepository clientRepository,
-                             BookCopyRepository bookCopyRepository, LockService lockService,
-                             OtpService otpService
-    ) {
-        this.rentalRepository = rentalRepository;
-        this.clientRepository = clientRepository;
-        this.bookCopyRepository = bookCopyRepository;
-        this.lockService = lockService;
-        this.otpService = otpService;
-    }
 
     @Override
     public RentalView reserve(UUID bookId, UUID clientId) throws NoBookCopiesAvailableException, AlreadyReservedException {
@@ -112,9 +101,12 @@ public class RentalServiceImpl implements RentalService {
 
     @Override
     public List<RentalView> rentalHistory(UUID clientId, int page) {
-        return rentalRepository.history(clientId, page)
+        return rentalRepository.findByClientIdAndStatusNotInOrderByCreatedDesc(
+                        clientId,
+                        RESERVATION_EXPIRED,
+                        PageRequest.of(page, 10))
                 .map(RentalServiceImpl::toView)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static RentalView toView(BookRental rental) {

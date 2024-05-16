@@ -1,9 +1,9 @@
 package org.example.database;
 
 import org.example.entity.Book;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
+import java.util.UUID;
 
-public interface BookRepository extends Repository<Book> {
-    List<Book> allBooks();
+public interface BookRepository extends JpaRepository<Book, UUID> {
 }
