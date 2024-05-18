@@ -16,6 +16,10 @@ import org.example.service.OtpService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
 import test_data.Random;
 import test_data.RentalServiceParameterResolver;
 
@@ -26,19 +30,23 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.mockito.Mockito.*;
 
-@ExtendWith(RentalServiceParameterResolver.class)
+@ExtendWith({RentalServiceParameterResolver.class, MockitoExtension.class})
 class RentalServiceImplTest {
-
+    @Mock
     RentalRepository rentalRepository = mock(RentalRepository.class);
+    @Mock
     ClientRepository clientRepository = mock(ClientRepository.class);
+    @Mock
     BookCopyRepository bookCopyRepository = mock(BookCopyRepository.class);
+    @Mock
+    Configuration configuration;
+    @Spy
     LockService lockService = new PrimitiveLockService();
+    @Spy
     OtpService otpService = new OtpServiceMock();
 
-    private final RentalServiceImpl rentalService = new RentalServiceImpl(
-            rentalRepository, clientRepository, bookCopyRepository, lockService, otpService,
-            new Configuration()
-    );
+    @InjectMocks
+    private RentalServiceImpl rentalService;
 
     @Test
     void create_rental_locking_test(BookRental bookRental,
@@ -56,8 +64,9 @@ class RentalServiceImplTest {
                 .when(clientRepository)
                 .findById(randomClient.getId());
 
-        when(rentalRepository.findByBookIdAndClientIdAndStatusIn(any(), any()))
-                .thenReturn(Collections.emptyList());
+        doReturn(Collections.emptyList())
+                .when(rentalRepository)
+                .findByBookIdAndClientIdAndStatusIn(any(), any(), any());
 
         when(bookCopyRepository.findAvailableCopyOf(any()))
                 .thenAnswer(i -> Optional.of(bookCopy));
