@@ -5,6 +5,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(
         value = HttpStatus.BAD_REQUEST,
-        reason = "у вас уже есть эта книга")
-public class AlreadyReservedException extends Exception {
+        reason = "неверный код отп")
+public class OtpValidationException extends RuntimeException {
 }

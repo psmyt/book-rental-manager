@@ -1,5 +1,6 @@
 package org.example.service.impl;
 
+import org.example.config.Configuration;
 import org.example.database.BookCopyRepository;
 import org.example.database.ClientRepository;
 import org.example.database.RentalRepository;
@@ -35,7 +36,8 @@ class RentalServiceImplTest {
     OtpService otpService = new OtpServiceMock();
 
     private final RentalServiceImpl rentalService = new RentalServiceImpl(
-            rentalRepository, clientRepository, bookCopyRepository, lockService, otpService
+            rentalRepository, clientRepository, bookCopyRepository, lockService, otpService,
+            new Configuration()
     );
 
     @Test

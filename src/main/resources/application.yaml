@@ -1,0 +1,12 @@
+spring:
+  jpa:
+    database: postgresql
+    show-sql: true
+  datasource:
+    platform: postgres
+    driverClassName: org.postgresql.Driver
+    url: "jdbc:postgresql://localhost:5432/book-manager"
+    username: postgres
+    password: postgres
+application:
+  reservationTtl: 10m
