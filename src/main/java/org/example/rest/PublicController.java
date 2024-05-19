@@ -10,7 +10,6 @@ import org.example.service.RentalService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.security.RolesAllowed;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,7 +25,6 @@ public class PublicController {
         return bookService.getBooks();
     }
 
-    @RolesAllowed("client")
     @PostMapping("/books/{bookId}/reserve")
     public RentalView reserve(
             @PathVariable("bookId") UUID bookId,
@@ -35,7 +33,6 @@ public class PublicController {
         return rentalService.reserve(bookId, clientId);
     }
 
-    @RolesAllowed("client")
     @GetMapping("/rentals/history")
     public List<RentalView> history(@RequestParam("page") int page, @AuthenticationPrincipal(expression = "clientId") UUID clientId) {
         if (page < 0) {

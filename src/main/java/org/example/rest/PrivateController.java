@@ -5,11 +5,9 @@ import org.example.dto.RentalView;
 import org.example.service.RentalService;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.security.RolesAllowed;
 import java.util.UUID;
 
 @RequestMapping("/private/rentals")
-@RolesAllowed("employee")
 @RestController
 @AllArgsConstructor
 public class PrivateController {

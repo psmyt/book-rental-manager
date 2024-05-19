@@ -4,7 +4,6 @@ import org.example.config.Configuration;
 import org.example.database.BookCopyRepository;
 import org.example.database.ClientRepository;
 import org.example.database.RentalRepository;
-import org.example.dto.RentalView;
 import org.example.entity.Book;
 import org.example.entity.BookCopy;
 import org.example.entity.BookRental;
@@ -33,11 +32,11 @@ import static org.mockito.Mockito.*;
 @ExtendWith({RentalServiceParameterResolver.class, MockitoExtension.class})
 class RentalServiceImplTest {
     @Mock
-    RentalRepository rentalRepository = mock(RentalRepository.class);
+    RentalRepository rentalRepository;
     @Mock
-    ClientRepository clientRepository = mock(ClientRepository.class);
+    ClientRepository clientRepository;
     @Mock
-    BookCopyRepository bookCopyRepository = mock(BookCopyRepository.class);
+    BookCopyRepository bookCopyRepository;
     @Mock
     Configuration configuration;
     @Spy
@@ -82,9 +81,9 @@ class RentalServiceImplTest {
                 });
 
         //будет выполняться 5 секунд
-        CompletableFuture<RentalView> future = CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
             try {
-                return rentalService.reserve(book.getId(), client.getId());
+                rentalService.reserve(book.getId(), client.getId());
             } catch (NoBookCopiesAvailableException | AlreadyReservedException e) {
                 throw new RuntimeException(e);
             }
